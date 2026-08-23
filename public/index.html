@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Chat | Microsoft Copilot</title>
+  <link rel="icon" href="/copilot.svg" type="image/svg+xml">
+  <style>
+    :root { color-scheme: light; font-family: "Segoe UI", Arial, sans-serif; color: #202124; background: #f7f7f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; }
+    .card { width: min(540px, calc(100% - 40px)); padding: 34px; background: #fff; border: 1px solid #e2e2e5; border-radius: 18px; box-shadow: 0 12px 38px #00000012; }
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 21px; font-weight: 650; }
+    .brand img { width: 34px; height: 34px; }
+    h1 { margin: 28px 0 10px; font-size: 25px; }
+    p { margin: 0; line-height: 1.55; color: #5f6368; }
+    .badge { display: inline-block; margin-top: 24px; padding: 7px 11px; border-radius: 999px; background: #f1f3f4; color: #444; font-size: 13px; }
+    button { margin-top: 22px; padding: 10px 16px; border: 1px solid #d7d7da; border-radius: 10px; background: #fff; color: #202124; font: inherit; cursor: pointer; }
+    button:hover { background: #f5f5f6; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand"><img src="/copilot.svg" alt="">Copilot</div>
+    <h1 id="heading">Buscando el computador de casa…</h1>
+    <p id="message">Esta dirección siempre será la misma. Estamos consultando cuál es el túnel seguro vigente.</p>
+    <button id="retry" type="button" hidden>Volver a intentar</button>
+    <span class="badge">Portal remoto privado de Brayan</span>
+  </main>
+  <script>
+    (() => {
+      'use strict';
+      const heading = document.getElementById('heading');
+      const message = document.getElementById('message');
+      const retry = document.getElementById('retry');
+      let timer = 0;
+
+      function validTarget(raw) {
+        if (typeof raw !== 'string' || raw.length > 200) return null;
+        try {
+          const target = new URL(raw);
+          if (target.protocol !== 'https:' || target.port || target.username || target.password || target.search || target.hash) return null;
+          if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.trycloudflare\.com$/i.test(target.hostname)) return null;
+          if (target.pathname !== '/') return null;
+          return target.origin;
+        } catch {
+          return null;
+        }
+      }
+
+      function schedule() {
+        clearTimeout(timer);
+        timer = setTimeout(locate, 10000);
+      }
+
+      async function locate() {
+        retry.hidden = true;
+        try {
+          const response = await fetch(`/target.json?t=${Date.now()}`, { cache: 'no-store', credentials: 'omit', redirect: 'error' });
+          if (!response.ok) throw new Error('target_unavailable');
+          const record = await response.json();
+          const destination = record.active === true ? validTarget(record.url) : null;
+          if (destination) {
+            heading.textContent = 'Conectando con el computador de casa…';
+            message.textContent = 'El túnel vigente fue encontrado. Te estamos enviando al portal remoto privado.';
+            location.replace(`${destination}/remote.html`);
+            return;
+          }
+          heading.textContent = 'El acceso de casa está desactivado';
+          message.textContent = 'Activa el servicio desde el botón del Escritorio de casa. Esta página lo detectará automáticamente.';
+        } catch {
+          heading.textContent = 'Todavía no pudimos localizar el computador';
+          message.textContent = 'Conserva esta misma dirección y vuelve a intentarlo en unos segundos.';
+          retry.hidden = false;
+        }
+        schedule();
+      }
+
+      retry.addEventListener('click', locate);
+      locate();
+    })();
+  </script>
+</body>
+</html>

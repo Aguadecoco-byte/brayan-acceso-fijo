@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+*.log
+node_modules/
+coverage/
+dist/
+*.pem
+*.key
+*.p12
+state.json
+*.sqlite*
+.render/
